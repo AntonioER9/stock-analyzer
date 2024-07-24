@@ -1,50 +1,38 @@
-import { StockData, TimeSeriesDaily } from '../models/stock.model';
-
 const ALPHA_VANTAGE_API_KEY = 'demo';
-const BASE_URL = 'https://www.alphavantage.co/query';
 
-const stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN'];
+export const getStockData = (symbol: string): Promise<any> => {
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+  return fetch(url)
+    .then(response => response.json())
+    .then(data => data)
+    .catch(error => {
+      throw new Error('Error retrieving stock data');
+    });
+};
 
-export const fetchHighestClosingPrice = async (stock: string) => {
-  let highestPrice = 0;
-
-  const response = await fetch(`${BASE_URL}?function=TIME_SERIES_DAILY&symbol=${stock}&apikey=${ALPHA_VANTAGE_API_KEY}`);
-  const data: StockData = await response.json();
-  const timeSeries: TimeSeriesDaily = data['Time Series (Daily)'];
+export const getMaxClosePrice = (data: any): number => {
+  const timeSeries = data['Time Series (Daily)'];
+  let maxClose = 0;
 
   for (const date in timeSeries) {
     const closePrice = parseFloat(timeSeries[date]['4. close']);
-    if (closePrice > highestPrice) {
-      highestPrice = closePrice;
+    if (closePrice > maxClose) {
+      maxClose = closePrice;
     }
   }
 
-  return { stock: stock, highestClosingPrice: highestPrice };
+  return maxClose;
 };
 
-export const fetchHighestAverageClosingPrice = async () => {
-  let highestAvgPrice = 0;
-  let highestStock = '';
+export const getAverageClosePrice = (data: any): number => {
+  const timeSeries = data['Time Series (Daily)'];
+  let totalClose = 0;
+  let count = 0;
 
-  for (const stock of stocks) {
-    const response = await fetch(`${BASE_URL}?function=TIME_SERIES_DAILY&symbol=${stock}&apikey=${ALPHA_VANTAGE_API_KEY}`);
-    const data: StockData = await response.json();
-    const timeSeries: TimeSeriesDaily = data['Time Series (Daily)'];
-
-    let total = 0;
-    let count = 0;
-
-    for (const date in timeSeries) {
-      total += parseFloat(timeSeries[date]['4. close']);
-      count++;
-    }
-
-    const avgPrice = total / count;
-    if (avgPrice > highestAvgPrice) {
-      highestAvgPrice = avgPrice;
-      highestStock = stock;
-    }
+  for (const date in timeSeries) {
+    totalClose += parseFloat(timeSeries[date]['4. close']);
+    count++;
   }
 
-  return { stock: highestStock, highestAverageClosingPrice: highestAvgPrice };
+  return totalClose / count;
 };
